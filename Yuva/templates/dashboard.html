@@ -1,18 +1,50 @@
 {% extends 'app.html' %}
 {% block content %}
+<div class="container mx-auto px-4 py-6">
+  <h2 class="text-3xl font-bold mb-6 text-gray-800">Welcome to the Dashboard</h2>
 
+  {% if user %}
+    <div class="mb-8 p-6 bg-white rounded-2xl shadow max-w-lg">
+      <h3 class="text-xl font-semibold mb-4 text-gray-900">User Info</h3>
+      <ul class="text-gray-700 space-y-1">
+        <li><span class="font-semibold">Name:</span> {{ user[0] }}</li>
+        <li><span class="font-semibold">Email:</span> {{ user[1] }}</li>
+      </ul>
+      <a href="{{ url_for('logout') }}" class="inline-block mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition">
+        Logout
+      </a>
+    </div>
 
-<div class="container">
-  <h2>Welcome to the Dashboard</h2>
+    <h3 class="text-2xl font-semibold mb-4 text-gray-800">Your Tasks</h3>
 
-    {% if user %}
-        <p>user information</p>
-        <ul>
-            <li>Name : {{ user[1] }}</li>
-            <li>Email : {{ user[2] }}</li>
-        </ul>
-        <a href="/logout" class="btn btn-dark">Logout</a>
+    {% if tasks %}
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for task in tasks %}
+          <div class="bg-white rounded-2xl shadow p-6 flex flex-col justify-between">
+            <div>
+              <h4 class="text-lg font-bold mb-2 text-gray-900">{{ task[1] }}</h4>
+              <p class="text-gray-700 mb-2">{{ task[2] or 'No description' }}</p>
+              <p>
+                <span class="font-semibold">Priority:</span>
+                <span class="{% if task[3] == 'High' %}text-red-600{% elif task[3] == 'Mid' %}text-yellow-500{% else %}text-green-600{% endif %}">
+                  {{ task[3] }}
+                </span>
+              </p>
+            </div>
+            <form method="POST" action="{{ url_for('delete_task', task_id=task[0]) }}" class="mt-4">
+              {{ delete_form.hidden_tag() }}
+              <button type="submit" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition w-full">
+                {{ delete_form.submit.label.text }}
+              </button>
+            </form>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-gray-600 mt-4">No tasks yet. 
+        <a href="{{ url_for('add_task') }}" class="text-indigo-600 hover:underline">Add your first task</a>
+      </p>
     {% endif %}
+  {% endif %}
 </div>
-
 {% endblock %}
