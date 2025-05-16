@@ -31,19 +31,17 @@
                 </span>
               </p>
             </div>
-            <form method="POST" action="{{ url_for('delete_task', task_id=task[0]) }}" class="mt-4">
-              {{ delete_form.hidden_tag() }}
-              <button type="submit" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition w-full">
-                {{ delete_form.submit.label.text }}
+            <form method="POST" action="{{ url_for('complete_task', task_id=task[0]) }}" class="mt-4">
+              {{ complete_form.hidden_tag() }}
+              <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition w-full">
+                {{ complete_form.submit.label.text }}
               </button>
             </form>
           </div>
         {% endfor %}
       </div>
     {% else %}
-      <p class="text-gray-600 mt-4">No tasks yet. 
-        <a href="{{ url_for('add_task') }}" class="text-indigo-600 hover:underline">Add your first task</a>
-      </p>
+      <p class="text-gray-600 mt-4">No tasks available.</p>
     {% endif %}
   {% endif %}
 </div>

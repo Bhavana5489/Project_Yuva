@@ -23,6 +23,7 @@ class RegisterForm(FlaskForm):
     name = StringField("Name", validators=[DataRequired()])
     email = StringField("Email", validators=[DataRequired(), Email()])
     password = PasswordField("Password", validators=[DataRequired()])
+    role = SelectField("Role", choices=[('user', 'User'), ('admin', 'Admin')], validators=[DataRequired()])
     submit = SubmitField("Register")
 
     def validate_email(self, field):
@@ -32,6 +33,7 @@ class RegisterForm(FlaskForm):
         cursor.close()
         if user:
             raise ValidationError('Email Already Taken')
+
 
 # Login Form
 class LoginForm(FlaskForm):
@@ -50,6 +52,10 @@ class DeleteTaskForm(FlaskForm):
     submit = SubmitField('Remove')
 
 
+class CompleteTaskForm(FlaskForm):
+    submit = SubmitField('Mark as Complete')
+
+
 # Home page
 @app.route('/')
 def index():
@@ -63,15 +69,18 @@ def register():
         name = form.name.data
         email = form.email.data
         password = form.password.data
+        role = form.role.data
         hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
 
         cursor = mysql.connection.cursor()
-        cursor.execute("INSERT INTO users (name, email, password) VALUES (%s, %s, %s)", (name, email, hashed_password))
+        cursor.execute("INSERT INTO users (name, email, password, role) VALUES (%s, %s, %s, %s)",
+                       (name, email, hashed_password, role))
         mysql.connection.commit()
         cursor.close()
 
         return redirect(url_for('login'))
     return render_template('register.html', form=form)
+
 
 # Login route
 @app.route('/login', methods=['GET', 'POST'])
@@ -90,7 +99,13 @@ def login():
             session['user_id'] = user[0]
             session['user_name'] = user[1]
             session['user_email'] = user[2]
-            return redirect(url_for('dashboard'))
+            session['user_role'] = user[4] if len(user) > 4 else 'user'
+
+            # Route based on role
+            if session['user_role'] == 'admin':
+                return redirect(url_for('admin_dashboard'))  # Redirect to admin.html route
+            else:
+                return redirect(url_for('dashboard'))
         else:
             flash("Login failed. Please check your email and password.")
             return redirect(url_for('login'))
@@ -104,13 +119,21 @@ def dashboard():
 
     user_id = session['user_id']
     cursor = mysql.connection.cursor()
-    cursor.execute("SELECT id, title, description, priority FROM tasks WHERE user_id = %s", (user_id,))
+    cursor.execute("""
+        SELECT id, title, description, priority
+        FROM tasks
+        WHERE user_id = %s AND (completed IS NULL OR completed = FALSE)
+    """, (user_id,))
     tasks = cursor.fetchall()
     cursor.close()
 
     user = (session.get('user_name'), session.get('user_email'))
     delete_form = DeleteTaskForm()
-    return render_template('dashboard.html', user=user, tasks=tasks, delete_form=delete_form)
+    complete_form = CompleteTaskForm()
+
+    return render_template('dashboard.html', user=user, tasks=tasks,
+                           delete_form=delete_form, complete_form=complete_form)
+
 
 
 # Add Task
@@ -170,10 +193,15 @@ def delete_task(task_id):
         return redirect(url_for('login'))
 
     user_id = session['user_id']
+    is_admin = session.get('user_email') == 'admin@example.com'
 
     cursor = mysql.connection.cursor()
-    cursor.execute("SELECT * FROM tasks WHERE id = %s AND user_id = %s", (task_id, user_id))
+    if is_admin:
+        cursor.execute("SELECT * FROM tasks WHERE id = %s", (task_id,))
+    else:
+        cursor.execute("SELECT * FROM tasks WHERE id = %s AND user_id = %s", (task_id, user_id))
     task = cursor.fetchone()
+
     if not task:
         cursor.close()
         flash("Task not found or unauthorized.")
@@ -184,7 +212,74 @@ def delete_task(task_id):
     cursor.close()
 
     flash("Task deleted successfully.")
+    return redirect(request.referrer or url_for('dashboard'))
+
+
+
+
+
+# Admin Dashboard
+@app.route('/admin', methods=['GET', 'POST'])
+def admin_dashboard():
+    if 'user_id' not in session or session.get('user_role') != 'admin':
+        flash("Unauthorized access.")
+        return redirect(url_for('login'))
+
+
+    add_form = TaskForm()
+    delete_form = DeleteTaskForm()
+
+    cursor = mysql.connection.cursor()
+
+    if add_form.validate_on_submit():
+        title = add_form.title.data
+        description = add_form.description.data
+        priority = add_form.priority.data
+
+        # For simplicity, we assign all admin-created tasks to admin (or use a dummy user_id like 0)
+        cursor.execute("INSERT INTO tasks (user_id, title, description, priority) VALUES (%s, %s, %s, %s)",
+                       (session['user_id'], title, description, priority))
+        mysql.connection.commit()
+        flash("Task added successfully.")
+        return redirect(url_for('admin_dashboard'))
+
+    cursor.execute("SELECT id, title, description, priority FROM tasks")
+    tasks = cursor.fetchall()
+    cursor.close()
+
+    user = (session.get('user_name'), session.get('user_email'))
+
+    return render_template('admin.html', user=user, tasks=tasks, add_form=add_form, delete_form=delete_form)
+
+
+
+
+@app.route('/task/complete/<int:task_id>', methods=['POST'])
+def complete_task(task_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    user_id = session['user_id']
+    cursor = mysql.connection.cursor()
+
+    # Optional: Check if the task belongs to the user
+    cursor.execute("SELECT * FROM tasks WHERE id = %s AND user_id = %s", (task_id, user_id))
+    task = cursor.fetchone()
+    if not task:
+        cursor.close()
+        flash("Task not found or unauthorized.")
+        return redirect(url_for('dashboard'))
+
+    # Set a `completed` field to TRUE (you need this column in DB)
+    cursor.execute("UPDATE tasks SET completed = TRUE WHERE id = %s", (task_id,))
+    mysql.connection.commit()
+    cursor.close()
+
+    flash("Task marked as completed.")
     return redirect(url_for('dashboard'))
+
+
+
 
 # Logout
 @app.route('/logout')
