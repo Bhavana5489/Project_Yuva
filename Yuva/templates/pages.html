@@ -1,0 +1,26 @@
+{% extends 'app.html' %}
+
+{% block content %}
+
+<form method="POST" class="max-w-4xl mx-auto bg-white p-8 rounded-2xl shadow-xl space-y-6 mt-10">
+    {{ form.hidden_tag() }}
+
+    <div>
+        <label class="block text-xl font-semibold text-gray-800 mb-2">
+            {{ form.title.label.text }}
+        </label>
+        {{ form.title(class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900") }}
+    </div>
+
+    <div>
+        <label class="block text-xl font-semibold text-gray-800 mb-2">
+            {{ form.body.label.text }}
+        </label>
+        {{ form.body(class="w-full h-[80vh] px-4 py-4 border border-gray-300 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900") }}
+    </div>
+
+    <div class="flex justify-end">
+        {{ form.submit(class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition duration-200") }}
+    </div>
+</form>
+{% endblock %}

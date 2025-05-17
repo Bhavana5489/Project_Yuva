@@ -1,9 +1,10 @@
 from flask import Flask, render_template, redirect, url_for, session, flash, request
 from flask_wtf import FlaskForm, CSRFProtect
-from wtforms import StringField, PasswordField, SubmitField, SelectField
-from wtforms.validators import DataRequired, Email, ValidationError
+from wtforms import StringField, PasswordField, SubmitField, SelectField,TextAreaField
+from wtforms.validators import DataRequired, Email, ValidationError, Length
 import bcrypt
 from flask_mysqldb import MySQL
+import MySQLdb.cursors
 
 app = Flask(__name__)
 
@@ -54,6 +55,17 @@ class DeleteTaskForm(FlaskForm):
 
 class CompleteTaskForm(FlaskForm):
     submit = SubmitField('Mark as Complete')
+
+class NoteForm(FlaskForm):
+    title = StringField("Title", validators=[DataRequired(), Length(max=255)])
+    body = TextAreaField("Note", validators=[DataRequired()])
+    submit = SubmitField("Save")
+
+
+class NoteForm(FlaskForm):
+    title = StringField('Title', validators=[DataRequired()])
+    body = TextAreaField('Body', validators=[DataRequired()])
+    submit = SubmitField('Save Note')
 
 
 # Home page
@@ -112,12 +124,17 @@ def login():
     return render_template('login.html', form=form)
 
 # Dashboard
+from flask import Flask, render_template, redirect, url_for, session, flash, request
+import MySQLdb.cursors
+
 @app.route('/dashboard')
 def dashboard():
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
     user_id = session['user_id']
+
+    # Fetch tasks
     cursor = mysql.connection.cursor()
     cursor.execute("""
         SELECT id, title, description, priority
@@ -127,13 +144,29 @@ def dashboard():
     tasks = cursor.fetchall()
     cursor.close()
 
+    # Fetch notes
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("""
+        SELECT id, title, body, created_at
+        FROM notes
+        WHERE user_id = %s
+        ORDER BY created_at DESC
+    """, (user_id,))
+    notes = cursor.fetchall()
+    cursor.close()
+
     user = (session.get('user_name'), session.get('user_email'))
     delete_form = DeleteTaskForm()
     complete_form = CompleteTaskForm()
 
-    return render_template('dashboard.html', user=user, tasks=tasks,
-                           delete_form=delete_form, complete_form=complete_form)
-
+    return render_template(
+        'dashboard.html',
+        user=user,
+        tasks=tasks,
+        delete_form=delete_form,
+        complete_form=complete_form,
+        notes=notes  # Pass notes to template
+    )
 
 
 # Add Task
@@ -277,6 +310,72 @@ def complete_task(task_id):
 
     flash("Task marked as completed.")
     return redirect(url_for('dashboard'))
+
+
+
+
+
+@app.route('/pages', methods=['GET', 'POST'])
+def pages():
+    # Check if the user is logged in
+    user_id = session.get('user_id')
+    if not user_id:
+        flash("Session expired or unauthorized access. Please log in again.", "danger")
+        return redirect(url_for('login'))
+
+    # DEBUG: Print full session contents
+    print("ENTERED /pages with session:", dict(session))
+
+    form = NoteForm()
+
+    if form.validate_on_submit():
+        title = form.title.data
+        body = form.body.data
+
+        # Insert note into database
+        cursor = mysql.connection.cursor()
+        try:
+            cursor.execute(
+                "INSERT INTO notes (user_id, title, body) VALUES (%s, %s, %s)",
+                (user_id, title, body)
+            )
+            mysql.connection.commit()
+            flash('Note saved successfully!', 'success')
+        except Exception as e:
+            flash(f"Error saving note: {e}", 'danger')
+        finally:
+            cursor.close()
+
+        return redirect(url_for('pages'))
+
+    # Fetch user notes
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("SELECT * FROM notes WHERE user_id = %s ORDER BY created_at DESC", (user_id,))
+    notes = cursor.fetchall()
+    cursor.close()
+
+    return render_template('pages.html', form=form, notes=notes)
+
+
+
+@app.route('/note/<int:note_id>')
+def view_note(note_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("SELECT * FROM notes WHERE id = %s AND user_id = %s", (note_id, session['user_id']))
+    note = cursor.fetchone()
+    cursor.close()
+
+    if not note:
+        flash("Note not found or unauthorized.")
+        return redirect(url_for('dashboard'))
+
+    return render_template('viewnote.html', note=note)
+
+
+
 
 
 
