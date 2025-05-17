@@ -1,0 +1,20 @@
+{% extends 'app.html' %}
+{% block content %}
+
+<div class="min-h-screen flex items-center justify-center bg-gray-100">
+  <div class="w-full max-w-3xl p-8 bg-white rounded shadow-md">
+      <h1 class="text-3xl font-bold text-indigo-700 mb-4">{{ note.title }}</h1>
+      <p class="text-sm text-gray-500 mb-6">Created at {{ note.created_at.strftime('%B %d, %Y') }}</p>
+      <div class="text-gray-800 whitespace-pre-wrap leading-relaxed">
+          {{ note.body }}
+      </div>
+
+      <div class="mt-8">
+          <a href="{{ url_for('dashboard') }}" class="inline-block bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition duration-300">
+              ← Back to Dashboard
+          </a>
+      </div>
+  </div>
+</div>
+
+{% endblock %}

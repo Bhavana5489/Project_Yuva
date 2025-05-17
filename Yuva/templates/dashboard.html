@@ -45,4 +45,24 @@
     {% endif %}
   {% endif %}
 </div>
+
+
+
+<section class="mt-12">
+    <h2 class="text-2xl font-bold text-gray-800 mb-4">Your Notes</h2>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for note in notes %}
+        <a href="{{ url_for('view_note', note_id=note['id']) }}" class="block bg-white p-6 rounded-xl shadow hover:shadow-md transition duration-200 border border-gray-200">
+            <h3 class="text-xl font-semibold text-blue-700 mb-2">{{ note.title }}</h3>
+            <p class="text-gray-600 line-clamp-3">{{ note.body }}</p>
+            <p class="mt-2 text-sm text-gray-400">{{ note.created_at.strftime('%b %d, %Y') }}</p>
+        </a>
+        {% else %}
+        <p class="text-gray-500 col-span-full">No notes yet. Add some from the <a href="{{ url_for('pages') }}" class="text-blue-600 underline">notes page</a>.</p>
+        {% endfor %}
+    </div>
+</section>
+
+
 {% endblock %}
