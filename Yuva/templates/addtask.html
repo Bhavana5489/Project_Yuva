@@ -1,41 +1,29 @@
 {% extends 'app.html' %}
 {% block content %}
 
-<div class="min-h-screen flex items-center justify-center bg-gray-100">
-  <form action="{{ url_for('add_task') }}" method="post" class="w-full max-w-md p-6 bg-white rounded shadow-md">
-      {{ form.hidden_tag() }}
 
-      <div class="mb-4">
-          {{ form.title.label(class_="block text-gray-700 font-semibold mb-2") }}
-          {{ form.title(class_="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500") }}
-          {% for error in form.title.errors %}
-              <p class="text-red-500 text-sm mt-1">{{ error }}</p>
-          {% endfor %}
-      </div>
+<form action="{{ url_for('add_task') }}" method="post" class="max-w-md mx-auto p-6 bg-white rounded shadow-md">
+    {{ form.hidden_tag() }}
 
-      <div class="mb-4">
-          {{ form.description.label(class_="block text-gray-700 font-semibold mb-2") }}
-          {{ form.description(class_="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500", rows=4) }}
-          {% for error in form.description.errors %}
-              <p class="text-red-500 text-sm mt-1">{{ error }}</p>
-          {% endfor %}
-      </div>
+    <div class="mb-4">
+        {{ form.title.label(class_="block text-gray-700 font-semibold mb-2") }}
+        {{ form.title(class_="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500") }}
+        {% for error in form.title.errors %}
+            <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+        {% endfor %}
+    </div>
 
+    <div class="mb-4">
+        {{ form.description.label(class_="block text-gray-700 font-semibold mb-2") }}
+        {{ form.description(class_="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500", rows=4) }}
+        {% for error in form.description.errors %}
+            <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+        {% endfor %}
+    </div>
 
-      <div class="mb-4">
-    {{ form.priority.label(class_="block text-gray-700 font-semibold mb-2") }}
-    {{ form.priority(class_="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500") }}
-    {% for error in form.priority.errors %}
-        <p class="text-red-500 text-sm mt-1">{{ error }}</p>
-    {% endfor %}
-</div>
-
-
-
-      <div>
-          {{ form.submit(class_="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700 transition duration-300") }}
-      </div>
-  </form>
-</div>
+    <div>
+        {{ form.submit(class_="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700 transition duration-300") }}
+    </div>
+</form>
 
 {% endblock %}
